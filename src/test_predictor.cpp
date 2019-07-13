@@ -25,8 +25,8 @@ int main(int argc, char** argv)
             pub.publish(p);
             
             cv::Mat m(4,4,CV_64F);
-            //pred.getRelativePose(ros::Time::now().toSec(), ros::Duration(-1).toSec(), m);
-            pred.getRelativePose(ros::Time::now(), ros::Duration(-1), m);
+            pred.getRelativePose(ros::Time::now().toSec(), ros::Duration(-1).toSec(), m);
+            //pred.getRelativePose(ros::Time::now(), ros::Duration(-1), m);
             
             
 //             std::string matAsString (m.begin<unsigned char>(), m.end<unsigned char>());
