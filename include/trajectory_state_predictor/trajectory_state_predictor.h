@@ -2,12 +2,18 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <ros/ros.h>
 
+namespace cv
+{
+  class Mat;
+}
+
 class TrajectoryStatePredictor
 {
 public:
   TrajectoryStatePredictor();
-  //bool getRelativePoses(double start_time, double offset1, double offset2, cv::Mat& t);
+  bool getRelativePose(double start_time, double offset, cv::Mat& t);
   bool getRelativePose(ros::Time now, ros::Duration duration, geometry_msgs::PoseStamped& p);
+  bool getRelativePose(ros::Time now, ros::Duration duration, cv::Mat& t);
   
 private:
   void trajectoryCB(const pips_trajectory_msgs::trajectory_points::ConstPtr& trajectory);

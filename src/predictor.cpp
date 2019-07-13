@@ -5,19 +5,46 @@
 #include <pips_trajectory_msgs/trajectory_points.h>
 //#include <tf2/convert.h>  //needed to give access to templates
 
+#include <opencv2/core/mat.hpp>
 
 
-void getRelativePose(geometry_msgs::PoseStamped p1, geometry_msgs::PoseStamped p2, geometry_msgs::PoseStamped& p)
+void convert(tf::Transform in, tf::Transform& out)
+{
+  out = in;
+}
+
+void convert(geometry_msgs::PoseStamped in, tf::Transform& out)
+{
+  tf::poseMsgToTF(in.pose, out);
+}
+
+void convert(tf::Transform in, geometry_msgs::PoseStamped& out)
+{
+  tf::poseTFToMsg(in, out.pose);
+}
+
+// void getRelativePose(geometry_msgs::PoseStamped p1, geometry_msgs::PoseStamped p2, geometry_msgs::PoseStamped& p)
+// {
+//   tf::Transform t1,t2,t3;
+//   tf::poseMsgToTF(p1.pose,t1);
+//   tf::poseMsgToTF(p2.pose,t2);
+//   t3 = t1.inverseTimes(t2);
+//   
+//   //could also use poseStampedTFToMsg
+//   
+//   tf::poseTFToMsg(t3, p.pose);
+//   p.header = p2.header;
+// }
+
+template <typename A, typename B, typename C>
+void getRelativePose(A in1, B in2,C& out)
 {
   tf::Transform t1,t2,t3;
-  tf::poseMsgToTF(p1.pose,t1);
-  tf::poseMsgToTF(p2.pose,t2);
+  convert(in1, t1);
+  convert(in2, t2);
   t3 = t1.inverseTimes(t2);
-  
-  //could also use poseStampedTFToMsg
-  
-  tf::poseTFToMsg(t3, p.pose);
-  p.header = p2.header;
+  convert(t3, out);
+  //p.header = p2.header;
 }
 
 
@@ -92,6 +119,26 @@ bool getDesiredState(pips_trajectory_msgs::trajectory_points trajectory, ros::Ti
   posestamped.header = header;
 }
 
+void tfToMat(tf::Transform tf, cv::Mat& mat)
+{
+  tf::Vector3 trans = tf.getOrigin();
+  tf::Matrix3x3 rot = tf.getBasis();
+  
+  for(int i = 0; i < 3; ++i)
+  {
+    
+    for(int j = 0; j < 3; ++j)
+    {
+      mat.at<double>(i,j) = rot[i][j];
+    }
+    mat.at<double>(i,3) = trans[i];
+  }
+  for(int j = 0; j < 3; ++j)
+  {
+    mat.at<double>(3,j)=0;
+  }
+  mat.at<double>(3,3) = 1;
+}
 
 
 TrajectoryStatePredictor::TrajectoryStatePredictor()
@@ -121,10 +168,57 @@ bool TrajectoryStatePredictor::getRelativePose(ros::Time now, ros::Duration dura
   return false;
 }
 
-// bool getRelativePoses(double start_time, double offset1, double offset2, cv::Mat& t)
-// {
-//   
-// }
+bool TrajectoryStatePredictor::getRelativePose(ros::Time now, ros::Duration duration, cv::Mat& t)
+{
+  pips_trajectory_msgs::trajectory_points::ConstPtr trajectoryPtr = current_trajectory_;
+  if(!trajectoryPtr)
+  {
+    ROS_ERROR("No trajectory has been received yet!");
+    return false;
+  }
+  else
+  {
+    const pips_trajectory_msgs::trajectory_points& trajectory = *trajectoryPtr;
+    geometry_msgs::PoseStamped p1,p2;
+    if(getDesiredState(trajectory, now, p1) && getDesiredState(trajectory, now+duration, p2))
+    {
+      geometry_msgs::PoseStamped p;
+      ::getRelativePose(p1,p2,p);
+      tf::Transform a;
+      convert(p,a);
+      tfToMat(a,t);
+      return true;
+    }
+  }
+  return false;
+}
+
+bool TrajectoryStatePredictor::getRelativePose(double start_time, double offset, cv::Mat& t)
+{
+  pips_trajectory_msgs::trajectory_points::ConstPtr trajectoryPtr = current_trajectory_;
+  if(!trajectoryPtr)
+  {
+    ROS_ERROR("No trajectory has been received yet!");
+    return false;
+  }
+  else
+  {
+    const pips_trajectory_msgs::trajectory_points& trajectory = *trajectoryPtr;
+    ros::Time now(start_time);
+    ros::Duration duration(offset);
+    geometry_msgs::PoseStamped p1,p2;
+    if(getDesiredState(trajectory, now, p1) && getDesiredState(trajectory, now+duration, p2))
+    {
+      tf::Transform p;
+      ::getRelativePose(p1,p2,p);
+      tfToMat(p, t);
+      return true;
+    }
+  }
+  return false;
+  
+  
+}
 
 void TrajectoryStatePredictor::trajectoryCB(const pips_trajectory_msgs::trajectory_points::ConstPtr& trajectory)
 {
