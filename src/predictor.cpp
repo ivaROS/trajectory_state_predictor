@@ -128,7 +128,7 @@ bool TrajectoryStatePredictor::getRelativePose(ros::Time now, ros::Duration dura
 
 void TrajectoryStatePredictor::trajectoryCB(const pips_trajectory_msgs::trajectory_points::ConstPtr& trajectory)
 {
-  ROS_INFO_STREAM("Received trjaectory with timestamp " << trajectory->header.stamp);
+  ROS_DEBUG_STREAM("Received trjaectory with timestamp " << trajectory->header.stamp);
   current_trajectory_ = trajectory;
 }
 
