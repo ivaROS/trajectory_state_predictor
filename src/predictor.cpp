@@ -152,7 +152,8 @@ bool TrajectoryStatePredictor::getRelativePose(ros::Time now, ros::Duration dura
   pips_trajectory_msgs::trajectory_points::ConstPtr trajectoryPtr = current_trajectory_;
   if(!trajectoryPtr)
   {
-    ROS_ERROR("No trajectory has been received yet!");
+    // ROS_ERROR("No trajectory has been received yet!");
+    ROS_DEBUG("No trajectory has been received yet!");
     return false;
   }
   else
@@ -173,7 +174,8 @@ bool TrajectoryStatePredictor::getRelativePose(ros::Time now, ros::Duration dura
   pips_trajectory_msgs::trajectory_points::ConstPtr trajectoryPtr = current_trajectory_;
   if(!trajectoryPtr)
   {
-    ROS_ERROR("No trajectory has been received yet!");
+    // ROS_ERROR("No trajectory has been received yet!");
+    ROS_DEBUG("No trajectory has been received yet!");
     return false;
   }
   else
@@ -198,7 +200,8 @@ bool TrajectoryStatePredictor::getRelativePose(double start_time, double offset,
   pips_trajectory_msgs::trajectory_points::ConstPtr trajectoryPtr = current_trajectory_;
   if(!trajectoryPtr)
   {
-    ROS_ERROR("No trajectory has been received yet!");
+    // ROS_ERROR("No trajectory has been received yet!");
+    ROS_DEBUG("No trajectory has been received yet!");
     return false;
   }
   else
