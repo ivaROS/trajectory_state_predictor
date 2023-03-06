@@ -117,6 +117,7 @@ bool getDesiredState(pips_trajectory_msgs::trajectory_points trajectory, ros::Ti
   
   posestamped.pose = pose;
   posestamped.header = header;
+  return true;
 }
 
 void tfToMat(tf::Transform tf, cv::Mat& mat)
@@ -140,11 +141,32 @@ void tfToMat(tf::Transform tf, cv::Mat& mat)
   mat.at<double>(3,3) = 1;
 }
 
+void tfToMatFloat(tf::Transform tf, cv::Mat& mat)
+{
+  tf::Vector3 trans = tf.getOrigin();
+  tf::Matrix3x3 rot = tf.getBasis();
+  
+  for(int i = 0; i < 3; ++i)
+  {
+    
+    for(int j = 0; j < 3; ++j)
+    {
+      mat.at<float>(i,j) = rot[i][j];
+    }
+    mat.at<float>(i,3) = trans[i];
+  }
+  for(int j = 0; j < 3; ++j)
+  {
+    mat.at<float>(3,j)=0;
+  }
+  mat.at<float>(3,3) = 1;
+}
 
 TrajectoryStatePredictor::TrajectoryStatePredictor()
 {
   ros::NodeHandle nh;
-  traj_sub_ = nh.subscribe("trajectory", 1, &TrajectoryStatePredictor::trajectoryCB, this);
+  // traj_sub_ = nh.subscribe("trajectory", 1, &TrajectoryStatePredictor::trajectoryCB, this);
+  traj_sub_ = nh.subscribe("/turtlebot_controller/trajectory_controller/desired_trajectory", 1, &TrajectoryStatePredictor::trajectoryCB, this);
 }
 
 bool TrajectoryStatePredictor::getRelativePose(ros::Time now, ros::Duration duration, geometry_msgs::PoseStamped& p)
@@ -186,7 +208,7 @@ bool TrajectoryStatePredictor::getRelativePose(ros::Time now, ros::Duration dura
       ::getRelativePose(p1,p2,p);
       tf::Transform a;
       convert(p,a);
-      tfToMat(a,t);
+      tfToMatFloat(a,t);
       return true;
     }
   }
@@ -198,7 +220,7 @@ bool TrajectoryStatePredictor::getRelativePose(double start_time, double offset,
   pips_trajectory_msgs::trajectory_points::ConstPtr trajectoryPtr = current_trajectory_;
   if(!trajectoryPtr)
   {
-    ROS_ERROR("No trajectory has been received yet!");
+    ROS_ERROR_THROTTLE(100, "TrajectoryPredictor: No trajectory has been received yet!");
     return false;
   }
   else
@@ -211,7 +233,8 @@ bool TrajectoryStatePredictor::getRelativePose(double start_time, double offset,
     {
       tf::Transform p;
       ::getRelativePose(p1,p2,p);
-      tfToMat(p, t);
+      tfToMatFloat(p, t);
+      ROS_INFO_THROTTLE(10, "TrajectoryPredictor: found relative pose.");
       return true;
     }
   }
@@ -222,8 +245,13 @@ bool TrajectoryStatePredictor::getRelativePose(double start_time, double offset,
 
 void TrajectoryStatePredictor::trajectoryCB(const pips_trajectory_msgs::trajectory_points::ConstPtr& trajectory)
 {
-  ROS_DEBUG_STREAM("Received trjaectory with timestamp " << trajectory->header.stamp);
+  if (0 == trajectory->points.size())
+  {
+    return;
+  }
+  ROS_INFO_STREAM("TrajectoryPredictor: Received trjaectory with timestamp " << trajectory->header.stamp);
   current_trajectory_ = trajectory;
+  traj_sub_.shutdown();
 }
 
 
